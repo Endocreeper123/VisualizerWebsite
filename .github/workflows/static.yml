@@ -1,0 +1,53 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages (from private repo)
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows manual run from Actions tab
+  workflow_dispatch:
+
+# Permissions required for Pages artifact deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Avoid overlapping deployments
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch index.html from private repo (EndoVisualizer)
+        env:
+          TOKEN: ${{ secrets.PRIVATE_VISUALIZER_READ_TOKEN }}
+        run: |
+          mkdir out
+          echo "Fetching index.html from private repo..."
+          curl -fsSL \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.raw+json" \
+            -o out/index.html \
+            https://api.github.com/repos/Endocreeper123/EndoVisualizer/contents/index.html?ref=main
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'out'  # Only the fetched index.html is deployed
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
